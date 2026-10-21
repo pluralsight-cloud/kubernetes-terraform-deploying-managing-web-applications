@@ -1,0 +1,31 @@
+# Copy to terraform.tfvars and adjust as needed.
+
+aws_region   = "us-east-1"
+cluster_name = "demo-eks-cluster"
+image        = "ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/globomantics:demo"
+admin_email  = "admin@globomantics.local"
+app_replicas = 2
+
+# Namespace ResourceQuota
+quota_requests_cpu    = "2"
+quota_requests_memory = "4Gi"
+quota_limits_cpu      = "4"
+quota_limits_memory   = "8Gi"
+quota_pods            = "10"
+
+# Namespace LimitRange defaults
+limit_default_cpu            = "500m"
+limit_default_memory         = "512Mi"
+limit_default_request_cpu    = "100m"
+limit_default_request_memory = "256Mi"
+
+# MongoDB
+mongodb_chart_version    = "16.5.45"
+mongodb_image_tag        = "7.0.8-debian-12-r2"
+mongodb_persistence_size = "8Gi"
+
+# Ingress (joins the shared ALB group from terraform/eks)
+ingress_group_name  = "demo"
+ingress_class_name  = "alb"
+ingress_path        = "/"
+ingress_group_order = "10"

@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-globo-header: #212121;
+  --color-globo-mint: #bdfef2;
+  --color-globo-teal: #51b5b1;
+  --color-globo-teal-hover: #528c81;
+  --color-globo-blue: #1b526d;
+  --color-globo-gray: #5e5e5e;
+  --color-globo-muted: #9c9c9c;
+  --color-globo-footer: #f2f2f2;
+  --font-sans: var(--font-open-sans);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-open-sans), "Open Sans", sans-serif;
+  background: #fff;
+  color: #171717;
+}
+
+a {
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-oval {
+  background-color: #51b5b1;
+  border-radius: 40px;
+  padding: 10px 30px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 17px;
+  text-align: center;
+  display: inline-block;
+  transition: background-color 0.3s ease;
+}
+
+.btn-oval:hover {
+  background-color: #528c81;
+  color: #fff;
+}
+
+.ps-gradient {
+  background: linear-gradient(to right, #f05a28 0%, #e80a89 100%);
+}

@@ -1,0 +1,9 @@
+node_modules/
+
+# Local Terraform inputs. The *.example files stay in git.
+*.tfvars
+!*.tfvars.example
+
+# App backend config. Copy backend.hcl.example and fill in the account id.
+backend.hcl
+!backend.hcl.example
