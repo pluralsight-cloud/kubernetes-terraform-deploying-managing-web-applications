@@ -12,3 +12,7 @@ override.tf.json
 terraform.rc
 *.tfvars
 !terraform.tfvars.example
+
+# Helm provider index cache. Created at apply time.
+# repositories.yaml stays tracked so Helm does not fall back to the user repo list.
+.helm/cache/

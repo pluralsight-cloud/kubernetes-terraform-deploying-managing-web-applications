@@ -107,13 +107,14 @@ resource "kubernetes_ingress_v1" "public" {
   # The controller finalizer often never clears, so Terraform waits until
   # "Ingress still exists". This removes the load balancer, its security
   # groups, and the finalizer before Terraform deletes the object.
+  # cmd treats "/" in a command name as a switch ("'modules' is not recognized"),
+  # so Windows runs cleanup.cmd by name after cd. exit /b keeps a Windows
+  # failure from also taking the sh path. sh does not search the current
+  # directory, so it falls through to ./cleanup.cmd (python3).
   provisioner "local-exec" {
     when    = destroy
     command = <<-EOT
-      python3 modules/ingress/cleanup.py \
-        ${self.metadata[0].namespace} \
-        ${self.metadata[0].name} \
-        ${self.metadata[0].annotations["alb.ingress.kubernetes.io/group.name"]}
+      cd modules/ingress && (cleanup.cmd ${self.metadata[0].namespace} ${self.metadata[0].name} ${self.metadata[0].annotations["alb.ingress.kubernetes.io/group.name"]} & exit /b) || ./cleanup.cmd ${self.metadata[0].namespace} ${self.metadata[0].name} ${self.metadata[0].annotations["alb.ingress.kubernetes.io/group.name"]}
     EOT
   }
 
