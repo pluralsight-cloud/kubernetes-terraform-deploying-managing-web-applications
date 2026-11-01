@@ -14,6 +14,27 @@ resource "kubernetes_secret_v1" "this" {
   }
 }
 
+resource "kubernetes_config_map_v1" "this" {
+  metadata {
+    name      = var.name
+    namespace = var.namespace
+  }
+
+  data = {
+    "settings.yml" = <<-EOT
+    use_default_settings: true
+    server:
+      image_proxy: true
+    ui:
+      static_use_hash: true
+    search:
+      formats:
+        - html
+        - json
+    EOT
+  }
+}
+
 resource "kubernetes_service_v1" "this" {
   metadata {
     name      = var.name
@@ -118,6 +139,12 @@ resource "kubernetes_deployment_v1" "this" {
           }
 
           volume_mount {
+            name       = "config"
+            mount_path = "/etc/searxng/settings.yml"
+            sub_path   = "settings.yml"
+          }
+
+          volume_mount {
             name       = "cache"
             mount_path = "/var/cache/searxng"
           }
@@ -160,6 +187,13 @@ resource "kubernetes_deployment_v1" "this" {
         }
 
         volume {
+          name = "config"
+          config_map {
+            name = kubernetes_config_map_v1.this.metadata[0].name
+          }
+        }
+
+        volume {
           name = "cache"
           empty_dir {}
         }
@@ -167,5 +201,8 @@ resource "kubernetes_deployment_v1" "this" {
     }
   }
 
-  depends_on = [kubernetes_secret_v1.this]
+  depends_on = [
+    kubernetes_secret_v1.this,
+    kubernetes_config_map_v1.this,
+  ]
 }
