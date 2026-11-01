@@ -1,5 +1,10 @@
 node_modules/
 
+# Terraform local cache and state (providers are downloaded by terraform init)
+.terraform/
+*.tfstate
+*.tfstate.*
+
 # Local Terraform inputs. The *.example files stay in git.
 *.tfvars
 !*.tfvars.example

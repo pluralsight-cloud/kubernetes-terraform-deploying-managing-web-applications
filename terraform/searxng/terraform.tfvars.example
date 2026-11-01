@@ -1,0 +1,23 @@
+aws_region   = "us-east-1"
+cluster_name = "demo-eks-cluster"
+image        = "searxng/searxng:latest"
+replicas     = 1
+
+# Namespace ResourceQuota
+quota_requests_cpu    = "1"
+quota_requests_memory = "1Gi"
+quota_limits_cpu      = "2"
+quota_limits_memory   = "2Gi"
+quota_pods            = "5"
+
+# Namespace LimitRange defaults
+limit_default_cpu            = "500m"
+limit_default_memory         = "512Mi"
+limit_default_request_cpu    = "100m"
+limit_default_request_memory = "256Mi"
+
+# Ingress (joins the shared ALB group from terraform/eks)
+ingress_group_name  = "demo"
+ingress_class_name  = "alb"
+ingress_path        = "/searxng"
+ingress_group_order = "20"
