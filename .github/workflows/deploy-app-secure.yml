@@ -1,0 +1,135 @@
+name: Deploy app (Checkov + tfsec)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-app-secure
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  CLUSTER_NAME: demo-eks-cluster
+  ECR_REPOSITORY: globomantics
+  TF_WORKING_DIR: terraform/app
+  TF_VERSION: "1.10.5"
+
+jobs:
+  scan:
+    name: Terraform security scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: terraform/app
+          soft_fail: true
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: terraform/app
+          framework: terraform
+          soft_fail: true
+          output_format: cli
+
+  deploy:
+    name: Deploy
+    needs: scan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve image URI
+        id: image
+        run: |
+          ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+          IMAGE_TAG="sha-${GITHUB_SHA::12}"
+          IMAGE_URI="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          {
+            echo "account_id=${ACCOUNT_ID}"
+            echo "tag=${IMAGE_TAG}"
+            echo "uri=${IMAGE_URI}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        working-directory: code
+        env:
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+          IMAGE_URI: ${{ steps.image.outputs.uri }}
+        run: |
+          # ECR tags are immutable. Re-runs of the same commit reuse the existing tag.
+          if aws ecr describe-images \
+            --repository-name "$ECR_REPOSITORY" \
+            --image-ids "imageTag=${IMAGE_TAG}" \
+            --region "$AWS_REGION" >/dev/null 2>&1; then
+            echo "Image ${ECR_REPOSITORY}:${IMAGE_TAG} already exists; skipping build/push."
+          else
+            docker build -t "$IMAGE_URI" .
+            docker push "$IMAGE_URI"
+          fi
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform init
+        env:
+          ACCOUNT_ID: ${{ steps.image.outputs.account_id }}
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=app-tfstate-${ACCOUNT_ID}" \
+            -backend-config="key=app/terraform.tfstate" \
+            -backend-config="region=${AWS_REGION}" \
+            -backend-config="use_lockfile=true" \
+            -backend-config="encrypt=true"
+
+      - name: Terraform apply
+        env:
+          IMAGE_URI: ${{ steps.image.outputs.uri }}
+          ADMIN_EMAIL: ${{ vars.ADMIN_EMAIL }}
+        run: |
+          EXTRA_VARS=()
+          if [ -n "${ADMIN_EMAIL}" ]; then
+            EXTRA_VARS+=(-var="admin_email=${ADMIN_EMAIL}")
+          else
+            # Keep the email already in state so CI does not rotate the Secrets Manager secret.
+            CURRENT_EMAIL="$(terraform output -raw admin_email 2>/dev/null || true)"
+            if [ -n "${CURRENT_EMAIL}" ]; then
+              EXTRA_VARS+=(-var="admin_email=${CURRENT_EMAIL}")
+            fi
+          fi
+
+          terraform apply -input=false -auto-approve \
+            -var-file=terraform.tfvars.example \
+            -var="aws_region=${AWS_REGION}" \
+            -var="cluster_name=${CLUSTER_NAME}" \
+            -var="image=${IMAGE_URI}" \
+            "${EXTRA_VARS[@]}"
+
+      - name: App URL
+        run: terraform output -raw app_url
