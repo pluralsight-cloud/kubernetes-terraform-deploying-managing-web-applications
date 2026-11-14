@@ -12,9 +12,28 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AWS_REGION: us-east-1
-  CLUSTER_NAME: demo-eks-cluster
+  # terraform/app/terraform.tfvars is not committed. These GitHub variables
+  # supply the same settings and fall back to the defaults in variables.tf.
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+  CLUSTER_NAME: ${{ vars.CLUSTER_NAME || 'demo-eks-cluster' }}
   ECR_REPOSITORY: globomantics
+  APP_REPLICAS: ${{ vars.APP_REPLICAS || '2' }}
+  QUOTA_REQUESTS_CPU: ${{ vars.QUOTA_REQUESTS_CPU || '2' }}
+  QUOTA_REQUESTS_MEMORY: ${{ vars.QUOTA_REQUESTS_MEMORY || '4Gi' }}
+  QUOTA_LIMITS_CPU: ${{ vars.QUOTA_LIMITS_CPU || '4' }}
+  QUOTA_LIMITS_MEMORY: ${{ vars.QUOTA_LIMITS_MEMORY || '8Gi' }}
+  QUOTA_PODS: ${{ vars.QUOTA_PODS || '10' }}
+  LIMIT_DEFAULT_CPU: ${{ vars.LIMIT_DEFAULT_CPU || '500m' }}
+  LIMIT_DEFAULT_MEMORY: ${{ vars.LIMIT_DEFAULT_MEMORY || '512Mi' }}
+  LIMIT_DEFAULT_REQUEST_CPU: ${{ vars.LIMIT_DEFAULT_REQUEST_CPU || '100m' }}
+  LIMIT_DEFAULT_REQUEST_MEMORY: ${{ vars.LIMIT_DEFAULT_REQUEST_MEMORY || '256Mi' }}
+  MONGODB_CHART_VERSION: ${{ vars.MONGODB_CHART_VERSION || '16.5.45' }}
+  MONGODB_IMAGE_TAG: ${{ vars.MONGODB_IMAGE_TAG || '7.0.8-debian-12-r2' }}
+  MONGODB_PERSISTENCE_SIZE: ${{ vars.MONGODB_PERSISTENCE_SIZE || '8Gi' }}
+  INGRESS_GROUP_NAME: ${{ vars.INGRESS_GROUP_NAME || 'demo' }}
+  INGRESS_CLASS_NAME: ${{ vars.INGRESS_CLASS_NAME || 'alb' }}
+  INGRESS_PATH: ${{ vars.INGRESS_PATH || '/' }}
+  INGRESS_GROUP_ORDER: ${{ vars.INGRESS_GROUP_ORDER || '10' }}
   TF_WORKING_DIR: terraform/app
   TF_VERSION: "1.10.5"
 
@@ -125,10 +144,26 @@ jobs:
           fi
 
           terraform apply -input=false -auto-approve \
-            -var-file=terraform.tfvars.example \
             -var="aws_region=${AWS_REGION}" \
             -var="cluster_name=${CLUSTER_NAME}" \
             -var="image=${IMAGE_URI}" \
+            -var="app_replicas=${APP_REPLICAS}" \
+            -var="quota_requests_cpu=${QUOTA_REQUESTS_CPU}" \
+            -var="quota_requests_memory=${QUOTA_REQUESTS_MEMORY}" \
+            -var="quota_limits_cpu=${QUOTA_LIMITS_CPU}" \
+            -var="quota_limits_memory=${QUOTA_LIMITS_MEMORY}" \
+            -var="quota_pods=${QUOTA_PODS}" \
+            -var="limit_default_cpu=${LIMIT_DEFAULT_CPU}" \
+            -var="limit_default_memory=${LIMIT_DEFAULT_MEMORY}" \
+            -var="limit_default_request_cpu=${LIMIT_DEFAULT_REQUEST_CPU}" \
+            -var="limit_default_request_memory=${LIMIT_DEFAULT_REQUEST_MEMORY}" \
+            -var="mongodb_chart_version=${MONGODB_CHART_VERSION}" \
+            -var="mongodb_image_tag=${MONGODB_IMAGE_TAG}" \
+            -var="mongodb_persistence_size=${MONGODB_PERSISTENCE_SIZE}" \
+            -var="ingress_group_name=${INGRESS_GROUP_NAME}" \
+            -var="ingress_class_name=${INGRESS_CLASS_NAME}" \
+            -var="ingress_path=${INGRESS_PATH}" \
+            -var="ingress_group_order=${INGRESS_GROUP_ORDER}" \
             "${EXTRA_VARS[@]}"
 
       - name: App URL

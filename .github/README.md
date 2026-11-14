@@ -273,11 +273,30 @@ terraform apply
 5. Value: the role ARN from step 3
 6. **Add secret**
 
-Optional repository **variable** (not a secret):
+`terraform/app/terraform.tfvars` is not committed. Both deploy workflows pass those settings as repository **variables** (Settings → Secrets and variables → Actions → Variables). Leave a variable unset to use the default from `terraform/app/variables.tf`. The container `image` is not a variable: the workflow builds a commit-tagged image and passes that URI.
 
-| Name | Type | Purpose |
-| ---- | ---- | ------- |
-| `ADMIN_EMAIL` | Variable | Overrides admin email; defaults to `admin@globomantics.local` |
+| Name | Default | Terraform variable |
+| ---- | ------- | ------------------ |
+| `AWS_REGION` | `us-east-1` | `aws_region` |
+| `CLUSTER_NAME` | `demo-eks-cluster` | `cluster_name` |
+| `APP_REPLICAS` | `2` | `app_replicas` |
+| `QUOTA_REQUESTS_CPU` | `2` | `quota_requests_cpu` |
+| `QUOTA_REQUESTS_MEMORY` | `4Gi` | `quota_requests_memory` |
+| `QUOTA_LIMITS_CPU` | `4` | `quota_limits_cpu` |
+| `QUOTA_LIMITS_MEMORY` | `8Gi` | `quota_limits_memory` |
+| `QUOTA_PODS` | `10` | `quota_pods` |
+| `LIMIT_DEFAULT_CPU` | `500m` | `limit_default_cpu` |
+| `LIMIT_DEFAULT_MEMORY` | `512Mi` | `limit_default_memory` |
+| `LIMIT_DEFAULT_REQUEST_CPU` | `100m` | `limit_default_request_cpu` |
+| `LIMIT_DEFAULT_REQUEST_MEMORY` | `256Mi` | `limit_default_request_memory` |
+| `MONGODB_CHART_VERSION` | `16.5.45` | `mongodb_chart_version` |
+| `MONGODB_IMAGE_TAG` | `7.0.8-debian-12-r2` | `mongodb_image_tag` |
+| `MONGODB_PERSISTENCE_SIZE` | `8Gi` | `mongodb_persistence_size` |
+| `INGRESS_GROUP_NAME` | `demo` | `ingress_group_name` |
+| `INGRESS_CLASS_NAME` | `alb` | `ingress_class_name` |
+| `INGRESS_PATH` | `/` | `ingress_path` |
+| `INGRESS_GROUP_ORDER` | `10` | `ingress_group_order` |
+| `ADMIN_EMAIL` | email already in state, otherwise `admin@globomantics.local` | `admin_email` |
 
 ## 6. Run the workflow
 
@@ -310,4 +329,4 @@ The role can call AWS APIs but is not an EKS access entry. Complete step 4 (`clu
 
 ### Terraform apply replaces the Secrets Manager secret every run
 
-`-var-file=terraform.tfvars.example` defaults `admin_email` to `admin@globomantics.local`. If state already has a different email, Terraform replaces the secret version. The workflow now reuses `terraform output -raw admin_email` when the `ADMIN_EMAIL` variable is unset. Set the GitHub variable `ADMIN_EMAIL` to the email you want if you are bootstrapping a new stack.
+`admin_email` is stored in the Secrets Manager secret. Changing it replaces the secret version. When the `ADMIN_EMAIL` GitHub variable is unset, the workflow reuses `terraform output -raw admin_email` so an existing stack keeps its email. Set `ADMIN_EMAIL` to choose the address, including on the first deploy.
