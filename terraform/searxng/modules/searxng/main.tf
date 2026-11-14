@@ -201,8 +201,5 @@ resource "kubernetes_deployment_v1" "this" {
     }
   }
 
-  depends_on = [
-    kubernetes_secret_v1.this,
-    kubernetes_config_map_v1.this,
-  ]
+  depends_on = [kubernetes_secret_v1.this]
 }
