@@ -2,6 +2,7 @@ node_modules/
 
 # Terraform local cache and state (providers are downloaded by terraform init)
 .terraform/
+.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
 
